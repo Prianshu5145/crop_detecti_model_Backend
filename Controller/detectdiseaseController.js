@@ -2,6 +2,7 @@ const axios = require("axios");
 const cloudinary = require("cloudinary").v2;
 const Disease = require("../Model/Disease");
 require("dotenv").config();
+
 // Cloudinary Config
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -31,9 +32,7 @@ exports.detectCropDisease = async (req, res) => {
 
     // 3️⃣ Call ML Model API
     const firstAPI = await axios.get(
-      `https://cropdiseasedetectionmodel-production.up.railway.app/predict?image_path=${encodeURIComponent(
-        imageUrl
-      )}`
+      `https://cropdiseasedetectionmodel-production.up.railway.app/predict?image_path=${encodeURIComponent(imageUrl)}`
     );
 
     const predictedClass = firstAPI.data?.predicted_class;
@@ -46,16 +45,25 @@ exports.detectCropDisease = async (req, res) => {
       });
     }
 
-    // 4️⃣ FORMAT DISEASE NAME ONLY
-    // Example: wheat_aphid → Wheat Aphid
-    let diseaseName = predictedClass
-      .split("_")
-      .join(" ")                      // replace all "_" with space
-      .replace(/\b\w/g, (c) => c.toUpperCase());  // Title Case
+    // 4️⃣ CLEAN + FORMAT DISEASE NAME
+    // Convert underscores → spaces
+    let cleaned = predictedClass.replace(/_/g, " ");
+
+    // Remove noisy words from model output
+    cleaned = cleaned.replace(
+      /\b(leaf|leaves|orange|crop|plant|disease|diseases|on|in)\b/gi,
+      ""
+    );
+
+    // Remove extra spaces
+    cleaned = cleaned.replace(/\s+/g, " ").trim();
+
+    // Title Case
+    let diseaseName = cleaned.replace(/\b\w/g, (c) => c.toUpperCase());
 
     console.log("Detected Disease:", diseaseName);
 
-    // 5️⃣ SEARCH MONGODB (no crop filter)
+    // 5️⃣ SEARCH MONGODB (case-insensitive)
     const disease = await Disease.findOne({
       diseaseName: new RegExp(`^${diseaseName}$`, "i")
     });
@@ -66,11 +74,7 @@ exports.detectCropDisease = async (req, res) => {
       return res.status(404).json({
         success: false,
         message: "Disease not found in database.",
-        detected: {
-          predictedClass,
-          diseaseName,
-          confidence
-        }
+        detected: { predictedClass, diseaseName, confidence }
       });
     }
 
@@ -83,7 +87,9 @@ exports.detectCropDisease = async (req, res) => {
         diseaseName,
         confidence
       },
-      diseaseInfo: disease
+      diseaseInfo: disease,
+      warning:
+        "⚠️ This is an AI-based early prediction. Do not rely completely. Consult local agriculture experts or KVK."
     });
 
   } catch (error) {
