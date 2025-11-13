@@ -13,7 +13,7 @@ const app = express();
 app.use(cookieParser());
 
 // CORS
-const allowedOrigins = ["http://localhost:5173", "http://localhost:3000"];
+const allowedOrigins = ["http://localhost:5173", "https://crop-detection-model-frontend.pages.dev"];
 
 app.use(
   cors({
