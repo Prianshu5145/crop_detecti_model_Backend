@@ -7,7 +7,7 @@ const sendWhatsappOtp = require('../Utils/sendWhatsappOtp');
 
 
 const createToken = (user) => 
-  jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+  jwt.sign({ id: user._id }, "Priyanshu", { expiresIn: '7d' });
 const isProduction = process.env.NODE_ENV === 'production';
 
 const cookieOptions = {
@@ -38,8 +38,17 @@ exports.sendOtpToWhatsapp = async (req, res) => {
 
   // If user does not exist, create new
   if (!user) {
-    user = new User({ mobile_number });
-  }
+  user = new User({ mobile_number });
+
+  // Delay WhatsApp Welcome Template by 15 seconds
+  setTimeout(() => {
+    sendWhatsappOtp(mobile_number, otp)
+      .catch((err) => {
+        console.error('WhatsApp OTP send failed:', err.message || err.response?.data);
+      });
+  }, 15000); // 15000ms = 15 seconds
+}
+
 
   user.otp = otp;
   user.otpExpiry = otpExpiry;

@@ -15,7 +15,7 @@ const sendWhatsappOtp = async (phoneNumber, otp) => {
     to: phoneNumber,
     type: "template",
     template: {
-      name: "auth_car_history_dekho", // Must be approved in WhatsApp BM
+      name: "authentication_template", // Must be approved in WhatsApp BM
       language: { code: "en_US" },
       components: [
         {
